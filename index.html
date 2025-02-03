@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Search with History</title>
+    <style>
+        /* Basic Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(to bottom, #4e54c8, #8f94fb);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            text-align: center;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            max-width: 600px;
+            width: 100%;
+            animation: fadeIn 1s ease-out;
+        }
+
+        input {
+            padding: 12px;
+            width: calc(100% - 24px);
+            max-width: 400px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            outline: none;
+            transition: border-color 0.3s ease;
+            margin-bottom: 10px;
+        }
+
+        input:focus {
+            border-color: #007BFF;
+        }
+
+        button {
+            padding: 12px 24px;
+            margin-top: 15px;
+            border: none;
+            border-radius: 8px;
+            background-color: #007BFF;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+            transform: scale(1.05);
+        }
+
+        .movie-details, .login-form, .register-form, .history {
+            margin-top: 20px;
+            text-align: left;
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            animation: fadeIn 1s ease-out;
+        }
+
+        .movie-details img {
+            max-width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .movie-details h2, .login-form h2, .register-form h2 {
+            margin: 0;
+            font-size: 24px;
+            color: #333;
+        }
+
+        .movie-details p, .login-form p, .register-form p {
+            margin: 10px 0;
+            color: #555;
+        }
+
+        .history ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .history li {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        #backToTop {
+            display: none; /* Hidden by default */
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 18px;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transition: opacity 0.3s ease;
+        }
+
+        #backToTop:hover {
+            background-color: #0056b3;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Movie Search with History</h1>
+        <div id="authContainer">
+
+            <div id="loginForm" class="login-form">
+                <h2>Login</h2>
+                <div class="form-group">
+                    <label for="loginUsername">Username</label>
+                    <input type="text" id="loginUsername" placeholder="Enter your username">
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" placeholder="Enter your password">
+                </div>
+                <button onclick="login()">Login</button>
+                <p>Don't have an account? <a href="#" onclick="showRegisterForm()">Register here</a></p>
+            </div>
+
+
+            <div id="registerForm" class="register-form" style="display: none;">
+                <h2>Register</h2>
+                <div class="form-group">
+                    <label for="registerUsername">Username</label>
+                    <input type="text" id="registerUsername" placeholder="Choose a username">
+                </div>
+                <div class="form-group">
+                    <label for="registerPassword">Password</label>
+                    <input type="password" id="registerPassword" placeholder="Choose a password">
+                </div>
+                <div class="form-group">
+                    <label for="registerEmail">Email</label>
+                    <input type="email" id="registerEmail" placeholder="Enter your email">
+                </div>
+                <button onclick="register()">Register</button>
+                <p>Already have an account? <a href="#" onclick="showLoginForm()">Login here</a></p>
+            </div>
+        </div>
+
+        
+        <div id="movieSearch" style="display: none;">
+            <input type="text" id="searchInput" placeholder="Enter movie title...">
+            <button onclick="searchMovie()">Search</button>
+            <div id="movieDetails" class="movie-details"></div>
+            <button id="showHistoryButton" onclick="toggleHistory()">Show History</button>
+            <div id="historyContainer" class="history" style="display: none;">
+                <h2>Search History</h2>
+                <ul id="historyList"></ul>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        const apiKey = '9e532022'; // Replace with your OMDB API key
+        const history = JSON.parse(localStorage.getItem('searchHistory')) || [];
+
+        function searchMovie() {
+            const query = document.getElementById('searchInput').value;
+            const url = `https://www.omdbapi.com/?t=${encodeURIComponent(query)}&apikey=${apiKey}`;
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.Response === 'True') {
+                        displayMovieDetails(data);
+                        addToHistory(query);
+                    } else {
+                        document.getElementById('movieDetails').innerHTML = `<p>${data.Error}</p>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('movieDetails').innerHTML = `<p>Something went wrong. Please try again.</p>`;
+                });
+        }
+
+        function displayMovieDetails(movie) {
+            const details = `
+                <h2>${movie.Title} (${movie.Year})</h2>
+                <img src="${movie.Poster}" alt="${movie.Title}">
+                <p><strong>Director:</strong> ${movie.Director}</p>
+                <p><strong>Genre:</strong> ${movie.Genre}</p>
+                <p><strong>Plot:</strong> ${movie.Plot}</p>
+            `;
+            document.getElementById('movieDetails').innerHTML = details;
+        }
+
+        function addToHistory(query) {
+            const now = new Date();
+            const timestamp = now.toLocaleString();
+            history.push({ query, timestamp });
+            localStorage.setItem('searchHistory', JSON.stringify(history));
+            displayHistory();
+        }
+
+        function displayHistory() {
+            const historyList = document.getElementById('historyList');
+            historyList.innerHTML = '';
+            history.forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = `${item.query} - ${item.timestamp}`;
+                historyList.appendChild(li);
+            });
+        }
+
+        function login() {
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+
+            document.getElementById('movieSearch').style.display = 'block';
+            document.getElementById('loginForm').style.display = 'none';
+        }
+
+        function register() {
+            const username = document.getElementById('registerUsername').value;
+            const password = document.getElementById('registerPassword').value;
+            const email = document.getElementById('registerEmail').value;
+
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('registerForm').style.display = 'none';
+        }
+
+        function showLoginForm() {
+            document.getElementById('registerForm').style.display = 'none';
+            document.getElementById('loginForm').style.display = 'block';
+        }
+
+        function showRegisterForm() {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('registerForm').style.display = 'block';
+        }
+
+        function toggleHistory() {
+            const historyContainer = document.getElementById('historyContainer');
+            const showHistoryButton = document.getElementById('showHistoryButton');
+            if (historyContainer.style.display === 'none') {
+                historyContainer.style.display = 'block';
+                showHistoryButton.textContent = 'Hide History';
+            } else {
+                historyContainer.style.display = 'none';
+                showHistoryButton.textContent = 'Show History';
+            }
+        }
+
+    </script>
+</body>
+</html>
